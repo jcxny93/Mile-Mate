@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MileMate</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#111827;--mu:#6b7280;--ac:#16a34a;--ac2:#dc2626;--bd:#e5e7eb;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--tx:#f3f4f6;--mu:#9ca3af;--bd:#2a2f3a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--tx:#f3f4f6;--mu:#9ca3af;--bd:#2a2f3a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 14px}
+h2{font-size:15px;margin:18px 0 8px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.big{font-size:44px;font-weight:700;text-align:center;margin:6px 0}
+.mu{color:var(--mu);font-size:14px}
+button{font:inherit;border:0;border-radius:12px;padding:14px;width:100%;background:var(--ac);color:#fff;font-weight:600}
+button.stop{background:var(--ac2)}button.sec{background:var(--bd);color:var(--tx)}
+button.x{width:auto;padding:4px 10px;background:none;color:var(--mu);font-size:20px}
+input,select{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin-bottom:8px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)}
+.item:last-child{border:0}
+.stat{display:flex;justify-content:space-between;padding:6px 0}
+.stat b{font-size:18px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
+nav button{background:none;color:var(--mu);padding:8px;font-size:13px}
+nav button.on{color:var(--ac)}
+nav span{display:block;font-size:22px}
+textarea{width:100%;height:120px;font:12px monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:8px}
+.hide{display:none}
+</style></head><body>
+<main>
+<section id="v-trips">
+<h1>🚗 Trips</h1>
+<div class="card">
+<div class="big" id="live">0.00 mi</div>
+<div class="mu" id="gpsmsg" style="text-align:center;margin-bottom:10px">Tap start when you begin driving</div>
+<button id="trackbtn">Start trip</button>
+</div>
+<h2>Add manually</h2>
+<div class="card">
+<div class="row"><input id="t-date" type="date"><input id="t-mi" type="number" inputmode="decimal" placeholder="Miles"></div>
+<input id="t-note" placeholder="Purpose (e.g. DoorDash, client visit)">
+<button id="t-add">Add trip</button>
+</div>
+<h2>Recent trips</h2>
+<div class="card" id="t-list"></div>
+</section>
+
+<section id="v-exp" class="hide">
+<h1>🧾 Expenses</h1>
+<div class="card">
+<div class="row"><input id="e-date" type="date"><input id="e-amt" type="number" inputmode="decimal" placeholder="$ Amount"></div>
+<select id="e-cat"><option>Gas</option><option>Parking & tolls</option><option>Phone</option><option>Maintenance</option><option>Supplies</option><option>Other</option></select>
+<div id="e-gas" class="row"><select id="e-fuel"></select><input id="e-gal" type="number" step="0.001" inputmode="decimal" placeholder="Gallons"></div>
+<input id="e-note" placeholder="Note (optional)">
+<button id="e-add">Add expense</button>
+</div>
+<h2>Recent expenses</h2>
+<div class="card" id="e-list"></div>
+</section>
+
+<section id="v-gas" class="hide">
+<h1>⛽ Gas prices</h1>
+<div class="card">
+<div class="mu">Fuel type you need</div>
+<select id="g-fuel"></select>
+<button id="g-loc">📍 Use my location</button>
+<div class="mu" id="g-msg" style="margin:8px 0">Location not set</div>
+<a id="g-maps" class="hide" target="_blank" rel="noopener" style="color:var(--ac);font-weight:600">Open nearby stations in Maps ↗</a>
+</div>
+<h2>Cheapest within 10 miles</h2>
+<div class="card" id="g-list"></div>
+<h2>Report a price you see</h2>
+<div class="card">
+<input id="g-name" placeholder="Station name (e.g. Shell on Main St)">
+<div class="row"><input id="g-price" type="number" step="0.001" inputmode="decimal" placeholder="$ per gallon"><select id="g-addfuel"></select></div>
+<button id="g-add">Save price at my location</button>
+<div class="mu" style="margin-top:8px">Prototype: prices come from you. The real app would pull live prices from a gas price data service.</div>
+</div>
+</section>
+
+<section id="v-car" class="hide">
+<h1>🚙 My car & fuel use</h1>
+<div class="card">
+<div class="row"><input id="c-year" type="number" inputmode="numeric" placeholder="Year"><input id="c-make" placeholder="Make"></div>
+<input id="c-model" placeholder="Model (e.g. Camry)">
+<div class="mu">Fuel it takes</div>
+<select id="c-fuel"></select>
+<div class="mu">Rated MPG (combined)</div>
+<input id="c-mpg" type="number" step="0.1" inputmode="decimal" placeholder="e.g. 32">
+<a target="_blank" rel="noopener" style="color:var(--ac);font-weight:600" href="https://www.fueleconomy.gov/feg/findacar.shtml">Look up your car's MPG and fuel type ↗</a>
+</div>
+<div class="card" id="c-stats"></div>
+</section>
+
+<section id="v-sum" class="hide">
+<h1>📊 Tax summary</h1>
+<div class="card">
+<div class="mu">Mileage rate ($ per mile)</div>
+<input id="rate" type="number" step="0.001" inputmode="decimal">
+<div class="mu">Default is the 2026 IRS business rate. Verify it before filing.</div>
+</div>
+<div class="card" id="sum"></div>
+<h2>Export</h2>
+<div class="card">
+<button class="sec" id="exp-btn">Generate CSV</button>
+<div id="exp-box" class="hide" style="margin-top:10px">
+<textarea id="csv" readonly></textarea>
+<button id="copy" style="margin-top:8px">Copy CSV</button>
+<div class="mu" id="copymsg"></div>
+</div>
+<div class="mu" style="margin-top:8px">⭐ Export will be a Pro feature ($3.99/mo) in the real app.</div>
+</div>
+<button class="sec" id="reset">Reset all data</button>
+</section>
+</main>
+
+<nav>
+<button data-v="trips" class="on"><span>🚗</span>Trips</button>
+<button data-v="exp"><span>🧾</span>Expenses</button>
+<button data-v="gas"><span>⛽</span>Gas</button>
+<button data-v="car"><span>🚙</span>My car</button>
+<button data-v="sum"><span>📊</span>Summary</button>
+</nav>
+
+<script>
+const $=id=>document.getElementById(id);
+let S={trips:[],exps:[],prices:[],fuel:'Regular',rate:0.725};let pos=null;
+const FUELS=['Regular (87)','Midgrade (89)','Premium (91-93)','Diesel','E85 (ethanol)','E15','Other'];
+try{const r=localStorage.getItem('milemate');if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=()=>{try{localStorage.setItem('milemate',JSON.stringify(S))}catch(e){}};
+const today=()=>new Date().toISOString().slice(0,10);
+const money=n=>'$'+n.toFixed(2);
+const uid=()=>Date.now()+Math.random();
+$('t-date').value=$('e-date').value=today();
+$('rate').value=S.rate;
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  ['trips','exp','gas','car','sum'].forEach(v=>$('v-'+v).classList.toggle('hide',v!==b.dataset.v));
+  render();
+});
+
+// GPS tracking
+let watch=null,last=null,meters=0;
+function hav(a,b){const R=6371000,r=Math.PI/180,dLa=(b.latitude-a.latitude)*r,dLo=(b.longitude-a.longitude)*r;
+const h=Math.sin(dLa/2)**2+Math.cos(a.latitude*r)*Math.cos(b.latitude*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+$('trackbtn').onclick=()=>{
+  if(watch!==null){
+    navigator.geolocation.clearWatch(watch);watch=null;
+    const mi=meters/1609.344;
+    if(mi>=0.05){S.trips.unshift({id:uid(),date:today(),miles:+mi.toFixed(2),note:'GPS trip'});save();}
+    $('trackbtn').textContent='Start trip';$('trackbtn').classList.remove('stop');
+    $('gpsmsg').textContent=mi>=0.05?'Trip saved ✅':'Trip too short to save';
+    meters=0;last=null;$('live').textContent='0.00 mi';render();return;
+  }
+  if(!navigator.geolocation){$('gpsmsg').textContent='GPS not available here. Use manual entry.';return}
+  meters=0;last=null;
+  watch=navigator.geolocation.watchPosition(p=>{
+    const c=p.coords;if(c.accuracy>50)return;
+    if(last){const d=hav(last,c);if(d>8)meters+=d}
+    if(!last||hav(last,c)>8)last={latitude:c.latitude,longitude:c.longitude};
+    $('live').textContent=(meters/1609.344).toFixed(2)+' mi';
+  },e=>{
+    navigator.geolocation.clearWatch(watch);watch=null;
+    $('trackbtn').textContent='Start trip';$('trackbtn').classList.remove('stop');
+    $('gpsmsg').textContent='Location blocked. Allow location access, or add trips manually.';
+  },{enableHighAccuracy:true,maximumAge:0});
+  $('trackbtn').textContent='Stop trip';$('trackbtn').classList.add('stop');
+  $('gpsmsg').textContent='Tracking… keep this screen open';
+};
+
+$('t-add').onclick=()=>{
+  const mi=parseFloat($('t-mi').value);if(!(mi>0))return;
+  S.trips.unshift({id:uid(),date:$('t-date').value||today(),miles:mi,note:$('t-note').value||'Manual trip'});
+  $('t-mi').value=$('t-note').value='';save();render();
+};
+$('e-add').onclick=()=>{
+  const a=parseFloat($('e-amt').value);if(!(a>0))return;
+  const g=$('e-cat').value==='Gas';
+  S.exps.unshift({id:uid(),date:$('e-date').value||today(),amount:a,cat:$('e-cat').value,fuel:g?$('e-fuel').value:'',gallons:g?(parseFloat($('e-gal').value)||''):'',note:$('e-note').value});
+  $('e-amt').value=$('e-note').value=$('e-gal').value='';save();render();
+};
+$('rate').oninput=()=>{S.rate=parseFloat($('rate').value)||0;save();render()};
+window.del=(k,id)=>{S[k]=S[k].filter(x=>x.id!==id);save();render()};
+$('reset').onclick=()=>{if(confirm('Delete all trips and expenses?')){S.trips=[];S.exps=[];save();render()}};
+
+$('exp-btn').onclick=()=>{
+  const q=s=>'"'+String(s||'').replace(/"/g,'""')+'"';
+  let c='Type,Date,Miles,Amount,Category,Fuel,Gallons,Note\n';
+  S.trips.forEach(t=>c+=['Trip',t.date,t.miles,(t.miles*S.rate).toFixed(2),'Mileage','','',q(t.note)].join(',')+'\n');
+  S.exps.forEach(e=>c+=['Expense',e.date,'',e.amount.toFixed(2),e.cat,e.fuel||'',e.gallons||'',q(e.note)].join(',')+'\n');
+  $('csv').value=c;$('exp-box').classList.remove('hide');
+};
+$('copy').onclick=async()=>{
+  const t=$('csv');t.select();
+  try{await navigator.clipboard.writeText(t.value);$('copymsg').textContent='Copied! Paste into Notes, email or a spreadsheet.'}
+  catch(e){try{document.execCommand('copy');$('copymsg').textContent='Copied!'}catch(_){$('copymsg').textContent='Press and hold the text to copy it.'}}
+};
+
+function list(arr,k,fmt){
+  return arr.length?arr.slice(0,30).map(x=>`<div class="item"><div>${fmt(x)}</div><button class="x" onclick="del('${k}',${x.id})">×</button></div>`).join(''):'<div class="mu">Nothing yet.</div>';
+}
+const esc=s=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function render(){
+  renderGas();renderFuel();
+  $('t-list').innerHTML=list(S.trips,'trips',t=>`<b>${t.miles.toFixed(2)} mi</b> · ${money(t.miles*S.rate)}<div class="mu">${t.date} · ${esc(t.note)}</div>`);
+  $('e-list').innerHTML=list(S.exps,'exps',e=>`<b>${money(e.amount)}</b> · ${e.cat}${e.fuel?' · '+e.fuel:''}${e.gallons?' · '+e.gallons+' gal':''}<div class="mu">${e.date}${e.note?' · '+esc(e.note):''}</div>`);
+  const mi=S.trips.reduce((a,t)=>a+t.miles,0),md=mi*S.rate,ex=S.exps.reduce((a,e)=>a+e.amount,0);
+  const by={};S.exps.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amount);
+  $('sum').innerHTML=`<div class="stat"><span>Total miles</span><b>${mi.toFixed(1)}</b></div>
+  <div class="stat"><span>Mileage deduction</span><b>${money(md)}</b></div>
+  <div class="stat"><span>Other expenses</span><b>${money(ex)}</b></div>
+  ${Object.entries(by).map(([k,v])=>`<div class="stat mu"><span>&nbsp;&nbsp;${k}</span><span>${money(v)}</span></div>`).join('')}
+  <hr style="border:0;border-top:1px solid var(--bd)">
+  <div class="stat"><span>Total deductions</span><b style="color:var(--ac)">${money(md+ex)}</b></div>`;
+}
+// Fuel type + gas price compare
+['e-fuel','g-fuel','g-addfuel'].forEach(id=>{$(id).innerHTML=FUELS.map(f=>`<option>${f}</option>`).join('');$(id).value=S.fuel});
+$('e-gas').classList.add('hide');
+$('e-cat').onchange=()=>$('e-gas').classList.toggle('hide',$('e-cat').value!=='Gas');
+['g-fuel','g-addfuel','e-fuel'].forEach(id=>$(id).addEventListener('change',e=>{S.fuel=e.target.value;['e-fuel','g-fuel','g-addfuel'].forEach(o=>$(o).value=S.fuel);save();renderGas()}));
+function locate(cb){
+  if(!navigator.geolocation){$('g-msg').textContent='GPS not available here.';return}
+  $('g-msg').textContent='Finding you…';
+  navigator.geolocation.getCurrentPosition(p=>{pos={latitude:p.coords.latitude,longitude:p.coords.longitude};renderGas();cb&&cb()},
+  err=>{const m=$('g-maps');m.href='https://www.google.com/maps/search/gas+stations+near+me';m.classList.remove('hide');
+    $('g-msg').textContent=err.code===1?'Location is blocked. Open this page in Safari or Chrome (not inside another app) and tap Allow when asked. Meanwhile, use the Maps link below.':err.code===3?'Location timed out. Step outside or try again, or use the Maps link below.':'Could not get your location here. Try again in Safari or Chrome, or use the Maps link below.'},{enableHighAccuracy:false,timeout:20000,maximumAge:60000});
+}
+$('g-loc').onclick=()=>locate();
+$('g-add').onclick=()=>{
+  const name=$('g-name').value.trim(),pr=parseFloat($('g-price').value);
+  if(!name||!(pr>0))return;
+  const go=()=>{S.prices.unshift({id:uid(),name,price:pr,fuel:$('g-addfuel').value,date:today(),latitude:pos.latitude,longitude:pos.longitude});
+    $('g-name').value=$('g-price').value='';save();renderGas()};
+  pos?go():locate(go);
+};
+function renderGas(){
+  if(!$('g-list'))return;
+  if(pos){$('g-msg').textContent='Location set ✅';const m=$('g-maps');m.href=`https://www.google.com/maps/search/gas+stations/@${pos.latitude},${pos.longitude},13z`;m.classList.remove('hide')}
+  if(!pos){$('g-list').innerHTML='<div class="mu">Tap "Use my location" to see prices near you.</div>';return}
+  const near=S.prices.filter(p=>p.fuel===S.fuel).map(p=>({...p,mi:hav(pos,p)/1609.344})).filter(p=>p.mi<=10).sort((a,b)=>a.price-b.price);
+  if(!near.length){$('g-list').innerHTML=`<div class="mu">No ${S.fuel} prices saved within 10 miles yet. Open Maps above to find stations, then report prices below.</div>`;return}
+  const hi=near[near.length-1].price;
+  $('g-list').innerHTML=near.map((p,i)=>`<div class="item"><div><b>$${p.price.toFixed(3)}</b> ${i===0?'🏆 cheapest':''}<div>${esc(p.name)}</div><div class="mu">${p.mi.toFixed(1)} mi · ${p.date}${i>0?' · +$'+(p.price-near[0].price).toFixed(2):''}</div><a target="_blank" rel="noopener" style="color:var(--ac)" href="https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}">Directions ↗</a></div><button class="x" onclick="del('prices',${p.id})">×</button></div>`).join('')
+   +(near.length>1?`<div class="mu" style="margin-top:8px">Filling 15 gal at the cheapest saves about $${((hi-near[0].price)*15).toFixed(2)} vs the priciest.</div>`:'');
+}
+// My car & fuel use
+if(!S.car)S.car={year:'',make:'',model:'',fuel:S.fuel,mpg:''};
+$('c-fuel').innerHTML=FUELS.map(f=>`<option>${f}</option>`).join('');$('c-fuel').value=S.car.fuel;
+['year','make','model','mpg'].forEach(k=>{const el=$('c-'+k);el.value=S.car[k]||'';el.oninput=()=>{S.car[k]=el.value;save();renderFuel()}});
+$('c-fuel').onchange=()=>{S.car.fuel=S.fuel=$('c-fuel').value;['e-fuel','g-fuel','g-addfuel'].forEach(o=>$(o).value=S.fuel);save();renderFuel();renderGas()};
+function renderFuel(){
+  if(!$('c-stats')||!S.car)return;
+  const c=S.car,mi=S.trips.reduce((a,t)=>a+t.miles,0);
+  const gas=S.exps.filter(e=>e.cat==='Gas'),spent=gas.reduce((a,e)=>a+e.amount,0);
+  const fills=gas.filter(e=>e.gallons>0),gal=fills.reduce((a,e)=>a+e.gallons,0),fAmt=fills.reduce((a,e)=>a+e.amount,0);
+  const ppg=fills.map(e=>e.amount/e.gallons),avg=gal?fAmt/gal:0,mpg=parseFloat(c.mpg)||0;
+  const actual=gal&&mi?mi/gal:0,wrong=fills.filter(e=>e.fuel&&e.fuel!==c.fuel).length;
+  const name=[c.year,c.make,c.model].filter(Boolean).join(' ')||'Your vehicle';
+  const row=(a,b)=>`<div class="stat"><span>${a}</span><b>${b}</b></div>`;
+  let h=`<div style="font-size:18px;font-weight:700">${esc(name)}</div><div class="mu" style="margin-bottom:8px">Takes: ${c.fuel}${mpg?' · Rated '+mpg+' MPG':''}</div>`;
+  h+=row('Miles driven (logged trips)',mi.toFixed(1));
+  h+=row('Total spent on gas',money(spent));
+  h+=row('Gallons logged',gal.toFixed(1));
+  h+=row('Avg price per gallon',avg?'$'+avg.toFixed(3):'—');
+  h+=row('Price range per gallon',ppg.length?'$'+Math.min(...ppg).toFixed(2)+' – $'+Math.max(...ppg).toFixed(2):'—');
+  h+=row('Gas cost per mile',mi&&spent?'$'+(spent/mi).toFixed(3):'—');
+  h+=row('Your actual MPG',actual?actual.toFixed(1):'—');
+  if(mpg&&actual){const d=actual-mpg;h+=`<div class="mu" style="margin-top:8px">You're getting ${Math.abs(d).toFixed(1)} MPG ${d>=0?'better':'worse'} than rated.${d<-3?' Tire pressure, speed and idling are common causes.':''}</div>`}
+  if(mpg&&mi&&avg){h+=`<div class="mu" style="margin-top:8px">At rated MPG, ${mi.toFixed(0)} miles needs about ${(mi/mpg).toFixed(1)} gal (~${money(mi/mpg*avg)}).</div>`}
+  if(wrong)h+=`<div class="mu" style="margin-top:8px;color:var(--ac2)">⚠️ ${wrong} fill-up(s) used a different fuel than ${c.fuel}. Check your owner's manual.</div>`;
+  if(!gal)h+=`<div class="mu" style="margin-top:8px">Log gallons with each Gas expense to unlock MPG and price range. Actual MPG is most accurate when you log every trip and every fill-up.</div>`;
+  $('c-stats').innerHTML=h;
+}
+render();
+</script></body></html>

@@ -220,7 +220,7 @@ function render(){
 }
 // Fuel type + gas price compare
 ['e-fuel','g-fuel','g-addfuel'].forEach(id=>{$(id).innerHTML=FUELS.map(f=>`<option>${f}</option>`).join('');$(id).value=S.fuel});
-$('e-gas').classList.add('hide');
+$('e-gas').classList.toggle('hide',$('e-cat').value!=='Gas');
 $('e-cat').onchange=()=>$('e-gas').classList.toggle('hide',$('e-cat').value!=='Gas');
 ['g-fuel','g-addfuel','e-fuel'].forEach(id=>$(id).addEventListener('change',e=>{S.fuel=e.target.value;['e-fuel','g-fuel','g-addfuel'].forEach(o=>$(o).value=S.fuel);save();renderGas()}));
 function locate(cb){
